@@ -15,13 +15,13 @@ namespace RainbowCat
     {
 
         public static RainbowCatOptions Instance;
-
         public readonly Configurable<ColorMode> colorMode;
         public readonly Configurable<float> changeSpeed;
         public readonly Configurable<float> startHue;
         public readonly Configurable<float> saturation;
         public readonly Configurable<float> brightness;
         public readonly Configurable<bool> tintFaceFeatures;
+        public readonly Configurable<float> colorGap;
 
         public RainbowCatOptions(BaseUnityPlugin plugin)
         {
@@ -33,6 +33,7 @@ namespace RainbowCat
             saturation = config.Bind("Saturation", defaultValue: 0.85f);
             brightness = config.Bind("Brightness", defaultValue: 1f);
             tintFaceFeatures = config.Bind("tintFaceFeatures", defaultValue: false);
+            colorGap = config.Bind("ColorGap", defaultValue: 0f);
         }
 
         public override void Initialize()
@@ -71,7 +72,11 @@ namespace RainbowCat
 
                 //开关：眼睛跟随身体颜色
                 new OpCheckBox(tintFaceFeatures, 10f, 210f),
-                new OpLabel(45f, 211f, "眼睛跟随变化(单色模式下眼睛不可见)"),
+                new OpLabel(45f, 211f, "眼睛跟随变化"),
+
+                //滑块：眼睛色差
+                new OpFloatSlider(colorGap, new Vector2(10f,160f), 220, 1),
+                new OpLabel(240f, 161f, "色像差"),
             };
 
             mainTab.AddItems(uiElements);

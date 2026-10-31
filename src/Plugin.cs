@@ -21,7 +21,7 @@ using static On.RainWorld;
 
 namespace RainbowCat
 {
-    [BepInPlugin("rainbowcat", "Rainbow Cat", "1.1.0")]
+    [BepInPlugin("rainbowcat", "Rainbow Cat", "1.2.0")]
     class RainbowCat : BaseUnityPlugin
     {
         //必要组件
@@ -57,7 +57,7 @@ namespace RainbowCat
             if (_initialized)
             {
                 On.Player.Update -= ChangeColor;
-                On.PlayerGraphics.DrawSprites -= HookPlayerGraphicsDrawSprites;
+                On.PlayerGraphics.DrawSprites -= MainPro;
             }
         }
 
@@ -176,6 +176,7 @@ namespace RainbowCat
 #endif
 #endif
         //加载模组时干什么
+        //On.RainWorld.OnModsInit钩子
         private void RainWorld_OnModsInit(orig_OnModsInit orig, RainWorld self)
         {
             orig(self);
@@ -188,12 +189,13 @@ namespace RainbowCat
             
             //必须在此方法内注册这两个钩子
             On.Player.Update += ChangeColor;
-            On.PlayerGraphics.DrawSprites += HookPlayerGraphicsDrawSprites;
+            On.PlayerGraphics.DrawSprites += MainPro;
         }
-        
+
 
 #if Main
         //改变颜色
+        //On.Player.Update钩子
         private void ChangeColor(On.Player.orig_Update orig, Player self, bool eu)
         {
             orig(self, eu);
@@ -216,7 +218,8 @@ namespace RainbowCat
         }
 
         //主逻辑
-        private void HookPlayerGraphicsDrawSprites(On.PlayerGraphics.orig_DrawSprites orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
+        //On.PlayerGraphics.DrawSprites钩子
+        private void MainPro(On.PlayerGraphics.orig_DrawSprites orig, PlayerGraphics self, RoomCamera.SpriteLeaser sLeaser, RoomCamera rCam, float timeStacker, Vector2 camPos)
         {
             orig(self, sLeaser, rCam, timeStacker, camPos);
             Player player = self.player;
@@ -232,20 +235,20 @@ namespace RainbowCat
             float sat = RainbowCatOptions.Instance.saturation.Value;
             float bri = RainbowCatOptions.Instance.brightness.Value;
             bool tintFace = RainbowCatOptions.Instance.tintFaceFeatures.Value;
+            float colorGap = RainbowCatOptions.Instance.colorGap.Value;
 
             //我不知道为什么AI把这个放到这里 保险起见还是不要动了
             if (sLeaser.sprites == null) return;
 
             //获取初始眼睛颜色
             Dictionary<int, Color> faceSpriteOriginalColor = null;
-            if (!tintFace)
+            if (true)//交给编译器优化去吧，我不想改了
             {
                 faceSpriteOriginalColor = new Dictionary<int, Color>();
                 for (int i = 0; i < sLeaser.sprites.Length; i++)
                 {
                     FSprite spr = sLeaser.sprites[i];
-                    if (spr == null || spr.element == null || string.IsNullOrEmpty(spr.element.name))
-                        continue;
+                    if (spr == null || spr.element == null || string.IsNullOrEmpty(spr.element.name)) continue;
                     if (spr.element.name.StartsWith("Face"))
                     {
                         faceSpriteOriginalColor[i] = spr.color;
@@ -283,20 +286,32 @@ namespace RainbowCat
             }
 
 
-            //渲染眼部颜色
-            if (!tintFace && faceSpriteOriginalColor != null)
+            //渲染眼部颜色  
+            if (faceSpriteOriginalColor != null)
             {
                 foreach (var kvp in faceSpriteOriginalColor)
                 {
                     int idx = kvp.Key;
+                    float h, s, b;
                     if (idx >= sLeaser.sprites.Length) continue;
                     FSprite spr = sLeaser.sprites[idx];
-                    if (spr != null)
+                    //不变
+                    if (!tintFace && spr != null)
                     {
                         spr.color = kvp.Value;
                     }
+                    //变化
+                    else if(tintFace && spr != null)
+                    {
+                        float eyeHue = currentHue + colorGap;
+                        eyeHue %= 1f;
+                        if (eyeHue < 0) eyeHue += 1f;
+                        Color eyeColor = Color.HSVToRGB(eyeHue, sat, bri);
+                        spr.color = eyeColor;
+                    }
                 }
             }
+            
         }
 #endif
 
